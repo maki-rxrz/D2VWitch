@@ -49,6 +49,12 @@ enum ExtensionStartCodeIdentifier {
     PICTURE_CODING_EXTENSION = 0x8
 };
 
+enum PictureStructure {
+    PICT_TOP_FIELD = 1,
+    PICT_BOTTOM_FIELD = 2,
+    PICT_FRAME = 3
+};
+
 
 static void clear(AVCodecParserContext *parser, AVCodecContext *avctx) {
     parser->pict_type = AV_PICTURE_TYPE_NONE;
@@ -141,9 +147,18 @@ void d2vWitchParseMPEG12Data(AVCodecParserContext *parser, AVCodecContext *avctx
                     }
                 } else if (extension_type == PICTURE_CODING_EXTENSION) {
                     if (bytes_left >= 5) {
-                        int top_field_first = data[3] & (1 << 7);
-                        int repeat_first_field = data[3] & (1 << 1);
-                        int progressive_frame = data[4] & (1 << 7);
+                        int top_field_first, repeat_first_field, progressive_frame;
+                        int picture_structure = data[2] & 3;
+
+                        if (picture_structure != PICT_FRAME) {
+                            top_field_first = picture_structure == PICT_TOP_FIELD;
+                            repeat_first_field = 0;
+                            progressive_frame = 0;
+                        } else {
+                            top_field_first = data[3] & (1 << 7);
+                            repeat_first_field = data[3] & (1 << 1);
+                            progressive_frame = data[4] & (1 << 7);
+                        }
 
                         parser->repeat_pict = 1;
 
